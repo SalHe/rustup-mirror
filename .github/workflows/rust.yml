@@ -38,3 +38,22 @@ jobs:
           # exe 输出路径：target/目标架构/release/项目名.exe（Cargo 自动生成）
           path: target/x86_64-pc-windows-msvc/release/*.exe
           retention-days: 7 # 产物保留7天，可自定义（如30）
+      # 安装 32 位 MinGW 依赖
+      - name: Install MinGW 32bit
+        run: sudo apt install -y gcc-mingw-w64-i686
+      # 新增 32 位 Rust 目标
+      - name: Add Windows 32bit target
+        run: rustup target add i686-pc-windows-gnu
+      # 编译 32 位 EXE
+      - name: Cross build Windows 32bit EXE (MinGW)
+        run: cargo build --release --target i686-pc-windows-gnu
+      # 同时上传 32/64 位 EXE
+      - name: Upload Windows EXEs (MinGW 32/64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe-mingw-32-64
+          path: |
+            target/x86_64-pc-windows-gnu/release/*.exe
+            target/i686-pc-windows-gnu/release/*.exe
+          retention-days: 14
+      
