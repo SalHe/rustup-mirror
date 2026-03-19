@@ -24,7 +24,8 @@ jobs:
         with:
           toolchain: stable
           target: x86_64-pc-windows-msvc # Windows 64位主流编译目标
-      
+      - name: test 
+        run: cargo run -- -t x86_64-unknown-linux-musl --gc 1
       # 编译 Windows 可执行文件（--release 生成优化后的exe，可选--debug）
       - name: Build Windows exe
         run: cargo build --target x86_64-pc-windows-msvc
