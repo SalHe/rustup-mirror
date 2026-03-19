@@ -1,54 +1,39 @@
-# .github/workflows/rust.yml
-name: Rust Build & Windows Cross Compile
-on: [push, pull_request] # 推送到分支/提交PR都触发，可仅保留[push]
+name: Rust
+on: [push]
 
 jobs:
-  build-and-cross-compile:
+  # 原 Ubuntu 构建+测试任务
+  build-ubuntu:
     runs-on: ubuntu-latest
     steps:
-      # 拉取仓库代码
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # 安装MinGW交叉编译依赖（核心）
-      - name: Install MinGW-w64 dependencies
-        run: |
-          sudo apt update -y
-          sudo apt install -y mingw-w64 gcc-mingw-w64-x86-64
-
-      # 配置Rust环境，添加Windows-GNU编译目标
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          target: x86_64-pc-windows-gnu
-          components: rustfmt, clippy # 可选，代码格式化/检查工具
-
-      # 显示Rust版本和目标，便于排查
-      - name: Show Rust info
-        run: |
-          rustc --version
-          cargo --version
-          rustup target list --installed
-
-      # Ubuntu原生构建（保留原逻辑）
-      - name: Build (Ubuntu native)
+      - uses: actions/checkout@v4
+      - name: Build
         run: cargo build --verbose
-
-      # Ubuntu原生测试（保留原逻辑）
       - name: Run tests
         run: cargo test --verbose
 
-      # MinGW交叉编译Windows 64位Release版EXE
-      - name: Cross build Windows 64bit EXE (MinGW)
-        run: cargo build --release --target x86_64-pc-windows-gnu
-
-      # 上传Windows EXE到Artifact（Action页面登录后可下载）
-      - name: Upload Windows EXE Artifact
+  # 新增 Windows 平台 exe 打包+上传任务
+  build-windows:
+    runs-on: windows-latest # 用 Windows 原生环境编译，避免交叉编译兼容问题
+    steps:
+      - uses: actions/checkout@v4
+      
+      # 安装 Rust 环境（Windows 原生支持）
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          target: x86_64-pc-windows-msvc # Windows 64位主流编译目标
+      
+      # 编译 Windows 可执行文件（--release 生成优化后的exe，可选--debug）
+      - name: Build Windows exe
+        run: cargo build --target x86_64-pc-windows-msvc
+      
+      # 上传 exe 到 Action 产物，支持页面直接下载
+      - name: Upload Windows exe artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-x64-exe-mingw # 产物名称，易识别
-          path: target/x86_64-pc-windows-gnu/release/*.exe # MinGW产物固定路径
-          retention-days: 14 # 产物保留14天，范围1-90
-          if-no-files-found: error # 无EXE文件则直接报错，快速定位问题
-          compression-level: 6 # 压缩级别，平衡速度和体积
+          name: windows-exe # 产物名称，Action 页面会显示
+          # exe 输出路径：target/目标架构/release/项目名.exe（Cargo 自动生成）
+          path: target/x86_64-pc-windows-msvc/debug/*.exe
+          retention-days: 7 # 产物保留7天，可自定义（如30）
