@@ -1,13 +1,13 @@
 #![forbid(unsafe_code)]
 
-use anyhow::{anyhow, Error};
+use anyhow::{Error, anyhow};
 use chrono::{Duration, Local, NaiveDate};
 use clap::Parser;
 use filebuffer::FileBuffer;
 use indicatif::{ProgressBar, ProgressStyle};
 use ring::digest;
 use std::collections::HashSet;
-use std::fs::{copy, create_dir_all, read_dir, remove_dir_all, remove_file, File};
+use std::fs::{File, copy, create_dir_all, read_dir, remove_dir_all, remove_file};
 use std::io::{Read, Write};
 use std::path::{Component, Path, PathBuf};
 use toml::Value;
@@ -416,7 +416,7 @@ fn main() {
             &sha256_data[..64]
         );
 
-        let mut value = data.parse::<Value>().unwrap();
+        let mut value: Value = toml::from_str(&data).unwrap();
         assert_eq!(value["manifest-version"].as_str(), Some("2"));
         println!(
             "Channel {} date {}",
@@ -561,7 +561,7 @@ fn main() {
         .read_to_string(&mut self_update_manifest_data)
         .unwrap();
 
-    let self_update_manifest_val = self_update_manifest_data.parse::<Value>().unwrap();
+    let self_update_manifest_val: Value = toml::from_str(&self_update_manifest_data).unwrap();
     assert_eq!(
         self_update_manifest_val["schema-version"].as_str(),
         Some("1")
