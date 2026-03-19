@@ -1,15 +1,39 @@
 name: Rust
-
 on: [push]
 
 jobs:
-  build:
-
+  # 原 Ubuntu 构建+测试任务
+  build-ubuntu:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      - uses: actions/checkout@v4
+      - name: Build
+        run: cargo build --verbose
+      - name: Run tests
+        run: cargo test --verbose
+
+  # 新增 Windows 平台 exe 打包+上传任务
+  build-windows:
+    runs-on: windows-latest # 用 Windows 原生环境编译，避免交叉编译兼容问题
+    steps:
+      - uses: actions/checkout@v4
+      
+      # 安装 Rust 环境（Windows 原生支持）
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          target: x86_64-pc-windows-msvc # Windows 64位主流编译目标
+      
+      # 编译 Windows 可执行文件（--release 生成优化后的exe，可选--debug）
+      - name: Build Windows exe
+        run: cargo build --release --target x86_64-pc-windows-msvc
+      
+      # 上传 exe 到 Action 产物，支持页面直接下载
+      - name: Upload Windows exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe # 产物名称，Action 页面会显示
+          # exe 输出路径：target/目标架构/release/项目名.exe（Cargo 自动生成）
+          path: target/x86_64-pc-windows-msvc/release/*.exe
+          retention-days: 7 # 产物保留7天，可自定义（如30）
